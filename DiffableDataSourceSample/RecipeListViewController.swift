@@ -6,7 +6,6 @@ A view controller that displays a list of recipes.
 */
 
 import UIKit
-import Combine
 
 /// - Tag: RecipeListViewController
 class RecipeListViewController: UICollectionViewController {
@@ -18,13 +17,12 @@ class RecipeListViewController: UICollectionViewController {
     
     /// - Tag: recipeListDataSource
     private var recipeListDataSource: UICollectionViewDiffableDataSource<RecipeListSection, Recipe.ID>!
-    private var allRecipesSubscriber: AnyCancellable?
-    private var recipeDidChangeSubscriber: Cancellable?
     
     private var recipeSplitViewController: RecipeSplitViewController {
         self.splitViewController as! RecipeSplitViewController
     }
     
+    /// - Tag: RecipeListViewControllerViewDidLoad
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -33,35 +31,68 @@ class RecipeListViewController: UICollectionViewController {
         configureCollectionView()
         configureDataSource()
         loadRecipeData()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(selectedRecipesDidChange(_:)),
+            name: .selectedRecipesDidChange,
+            object: nil
+        )
         
-        /// - Tag: allRecipesSubscriber
-        allRecipesSubscriber = dataStore.$allRecipes
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.refreshRecipeData()
-                self?.selectRecipeIfNeeded()
-            }
-        
-        /// - Tag: recipeDidChangeSubscriber
-        recipeDidChangeSubscriber = NotificationCenter.default
-            .publisher(for: .recipeDidChange)
-            .receive(on: RunLoop.main)
-            .map { $0.userInfo?[NotificationKeys.recipeId] }
-            .sink { [weak self] id in
-                guard let recipeId = id as? Recipe.ID else { return }
-                self?.recipeDidChange(recipeId)
-            }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(recipeDidChange(_:)),
+            name: .recipeDidChange,
+            object: nil
+        )
     }
     
     /// - Tag: recipeDidChange
-    private func recipeDidChange(_ recipeId: Recipe.ID) {
-        guard recipeListDataSource.indexPath(for: recipeId) != nil else { return }
+    @objc
+    private func recipeDidChange(_ notification: Notification) {
+        guard
+            // Get `recipeId` from from the `userInfo` dictionary.
+            let userInfo = notification.userInfo,
+            let recipeId = userInfo[NotificationKeys.recipeId] as? Recipe.ID,
+            // Confirm that the data source contains the recipe.
+            recipeListDataSource.indexPath(for: recipeId) != nil
+        else { return }
         
+        // Get the diffable data source's current snapshot.
         var snapshot = recipeListDataSource.snapshot()
+        // Update the recipe's data displayed in the collection view.
         snapshot.reconfigureItems([recipeId])
         recipeListDataSource.apply(snapshot, animatingDifferences: true)
     }
     
+    /// - Tag: selectedRecipesDidChange
+    @objc
+    private func selectedRecipesDidChange(_ notification: Notification) {
+        // Create a snapshot of the selected recipe identifiers from the notification's
+        // `userInfo` dictionary, and apply it to the diffable data source.
+        guard
+            let userInfo = notification.userInfo,
+            let selectedRecipeIds = userInfo[NotificationKeys.selectedRecipeIds] as? [Recipe.ID]
+        else { return }
+        
+        var snapshot = NSDiffableDataSourceSnapshot<RecipeListSection, Recipe.ID>()
+        snapshot.appendSections([.main])
+        snapshot.appendItems(selectedRecipeIds, toSection: .main)
+        recipeListDataSource.apply(snapshot, animatingDifferences: true)
+
+        // The design of this sample app makes it possible for the selected
+        // recipe displayed in the secondary (detail) view controller to exist
+        // in the new snapshot but not exist in the collection view prior to
+        // applying the snapshot. For instance, while displaying the list of
+        // favorite recipes, a person can unfavorite the selected recipe by tapping
+        // the `isFavorite` button. This removes the selected recipe from the
+        // favorites list. Tap the button again and the recipe reappears in the
+        // list. In this scenario, the app needs to re-select the recipe so it
+        // appears as selected in the collection view.
+        selectRecipeIfNeeded()
+    }
+    
+    // The sidebar calls showRecipes() each time a person selects a sidebar item.
     func showRecipes() {
         loadRecipeData()
         selectRecipeIfNeeded()
@@ -69,24 +100,19 @@ class RecipeListViewController: UICollectionViewController {
     
     /// - Tag: loadRecipeData
     private func loadRecipeData() {
-        guard let recipeIds = recipeSplitViewController.selectedRecipes?.recipeIds() else { return }
+        // Retrieve the list of recipe identifiers determined based on a
+        // selected sidebar item such as All Recipes or Favorites.
+        guard let recipeIds = recipeSplitViewController.selectedRecipes?.recipeIds()
+        else { return }
         
+        // Update the collection view by adding the recipe identifiers to
+        // a new snapshot, and apply the snapshop to the diffable data source.
         var snapshot = NSDiffableDataSourceSnapshot<RecipeListSection, Recipe.ID>()
         snapshot.appendSections([.main])
         snapshot.appendItems(recipeIds, toSection: .main)
         recipeListDataSource.applySnapshotUsingReloadData(snapshot)
     }
-    
-    /// - Tag: refreshRecipeData
-    private func refreshRecipeData() {
-        guard let recipeIds = recipeSplitViewController.selectedRecipes?.recipeIds() else { return }
         
-        var snapshot = NSDiffableDataSourceSnapshot<RecipeListSection, Recipe.ID>()
-        snapshot.appendSections([.main])
-        snapshot.appendItems(recipeIds, toSection: .main)
-        recipeListDataSource.apply(snapshot, animatingDifferences: true)
-    }
-    
     private func selectRecipeIfNeeded() {
         guard let selectedRecipeId = recipeSplitViewController.selectedRecipeId else { return }
         let indexPath = recipeListDataSource.indexPath(for: selectedRecipeId)
@@ -99,7 +125,7 @@ extension RecipeListViewController {
     
     @IBAction func addRecipe(_ sender: Any) {
         // The focus on this sample is diffable data source. So instead of providing a
-        // recipe editor, let's create a hard coded recipe and add it to the data store.
+        // recipe editor, the sample creates a hard-coded recipe and adds it to the data store.
         var recipe = dataStore.newRecipe()
         recipe.title = "Diffable Dumplings"
         recipe.prepTime = 60
@@ -120,13 +146,15 @@ extension RecipeListViewController {
         recipe.collections = collections
         
         let addedRecipe = dataStore.add(recipe)
+        
+        // Select the new recipe in the collection view.
         recipeSplitViewController.selectedRecipeId = addedRecipe.id
+        selectRecipeIfNeeded()
     }
     
     private func delete(_ recipe: Recipe) -> Bool {
         let didDelete = dataStore.delete(recipe)
         if didDelete {
-            refreshRecipeData()
             if let selectedRecipeId = recipeSplitViewController.selectedRecipeId,
                recipe.id == selectedRecipeId {
                 recipeSplitViewController.selectedRecipeId = nil
@@ -196,9 +224,8 @@ extension RecipeListViewController {
 extension RecipeListViewController {
     
     /// - Tag: configureDataSource
-    ///
     private func configureDataSource() {
-        
+        // Create a cell registration that the diffable data source will use.
         let recipeCellRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, Recipe> { cell, indexPath, recipe in
             var contentConfiguration = UIListContentConfiguration.subtitleCell()
             contentConfiguration.text = recipe.title
@@ -219,10 +246,12 @@ extension RecipeListViewController {
                 cell.accessories = []
             }
         }
-        
+
+        // Create the diffable data source and its cell provider.
         recipeListDataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) {
             collectionView, indexPath, identifier -> UICollectionViewCell in
-
+            // `identifier` is an instance of `Recipe.ID`. Use it to
+            // retrieve the recipe from the backing data store.
             let recipe = dataStore.recipe(with: identifier)!
             return collectionView.dequeueConfiguredReusableCell(using: recipeCellRegistration, for: indexPath, item: recipe)
         }

@@ -6,7 +6,6 @@ A view controller that displays the details of the selected recipe.
 */
 
 import UIKit
-import Combine
 
 class RecipeDetailViewController: UIViewController {
 
@@ -16,10 +15,10 @@ class RecipeDetailViewController: UIViewController {
     @IBOutlet var recipeIngredients: UITextView!
     @IBOutlet var recipeDirections: UITextView!
     @IBOutlet var favoriteButton: UIBarButtonItem!
+    @IBOutlet var deleteButton: UIBarButtonItem!
     @IBOutlet var contentStackView: UIStackView!
 
     private var recipeId: Recipe.ID?
-    private var recipeDidChangeSubscriber: Cancellable?
 
     func showDetail(with recipe: Recipe) {
         recipeId = recipe.id
@@ -32,6 +31,8 @@ class RecipeDetailViewController: UIViewController {
         favoriteButton.image = recipe.isFavorite ? UIImage(systemName: "heart.fill") : UIImage(systemName: "heart")
         
         contentStackView.alpha = 1.0
+        favoriteButton.isEnabled = true
+        deleteButton.isEnabled = true
     }
     
     func hideDetail(animated: Bool = true) {
@@ -43,11 +44,15 @@ class RecipeDetailViewController: UIViewController {
                 options: .curveEaseIn,
                 animations: {
                     self.contentStackView.alpha = 0.0
+                    self.favoriteButton.isEnabled = false
+                    self.deleteButton.isEnabled = false
                 },
                 completion: nil
             )
         } else {
             contentStackView.alpha = 0.0
+            self.favoriteButton.isEnabled = false
+            self.deleteButton.isEnabled = false
         }
     }
 
@@ -80,19 +85,29 @@ class RecipeDetailViewController: UIViewController {
         super.viewDidLoad()
         hideDetail(animated: false)
 
-        recipeDidChangeSubscriber = NotificationCenter.default
-            .publisher(for: .recipeDidChange)
-            .receive(on: RunLoop.main)
-            .map { $0.userInfo?[NotificationKeys.recipeId] }
-            .sink { [weak self] id in
-                guard
-                    let recipeId = self?.recipeId,
-                    recipeId == id as? Recipe.ID
-                else { return }
-                if let recipe = dataStore.recipe(with: recipeId) {
-                    self?.showDetail(with: recipe)
-                }
-            }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(recipeDidChange(_:)),
+            name: .recipeDidChange,
+            object: nil
+        )
+
+    }
+    
+    @objc
+    private func recipeDidChange(_ notification: Notification) {
+        // The notification contains the recipe that changed. If
+        // that recipe is the same as the one shown in this view
+        // controller, then update the UI with the latest recipe
+        // data.
+        guard
+            let userInfo = notification.userInfo,
+            let recipe = userInfo[NotificationKeys.recipe] as? Recipe
+        else { return }
+        
+        if recipe.id == self.recipeId {
+            showDetail(with: recipe)
+        }
     }
 
 }
@@ -104,15 +119,28 @@ extension RecipeDetailViewController {
             let id = recipeSplitViewController.selectedRecipeId,
             let recipe = dataStore.recipe(with: id)
         else { return }
-        
-        let alert = Alert.confirmDelete(of: recipe) { [weak self] didDelete in
-            if didDelete {
-                if let selectedRecipeId = self?.recipeSplitViewController.selectedRecipeId,
-                   recipe.id == selectedRecipeId {
-                    self?.recipeSplitViewController.selectedRecipeId = nil
-                }
+
+        let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            if dataStore.delete(recipe) {
+                self?.recipeSplitViewController.selectedRecipeId = nil
             }
         }
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { _ in }
+        
+        #if targetEnvironment(macCatalyst)
+        let preferredStyle = UIAlertController.Style.alert
+        #else
+        let preferredStyle = UIAlertController.Style.actionSheet
+        #endif
+        
+        let alert = UIAlertController(
+            title: "Are you sure you want to delete \(recipe.title)?",
+            message: nil,
+            preferredStyle: preferredStyle)
+        
+        alert.addAction(deleteAction)
+        alert.addAction(cancelAction)
         
         if let popoverPresentationController = alert.popoverPresentationController {
             popoverPresentationController.barButtonItem = sender as? UIBarButtonItem

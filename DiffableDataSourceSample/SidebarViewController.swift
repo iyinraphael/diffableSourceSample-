@@ -6,7 +6,6 @@ A view controller that displays items in the sidebar.
 */
 
 import UIKit
-import Combine
 
 /// - Tag: SidebarViewController
 class SidebarViewController: UICollectionViewController {
@@ -41,7 +40,6 @@ class SidebarViewController: UICollectionViewController {
     }
     
     private var sidebarDataSource: UICollectionViewDiffableDataSource<SidebarSection, SidebarItem>!
-    private var collectionsSubscriber: AnyCancellable?
     
     private var recipeSplitViewController: RecipeSplitViewController {
         self.splitViewController as! RecipeSplitViewController
@@ -55,13 +53,21 @@ class SidebarViewController: UICollectionViewController {
         configureCollectionView()
         configureDataSource()
         
-        collectionsSubscriber = dataStore.$collections
-            .sink { [weak self] collections in
-                self?.collectionsDidChange(collections)
-            }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(recipeCollectionsDidChange(_:)),
+            name: .recipeCollectionsDidChange,
+            object: nil
+        )
     }
 
-    private func collectionsDidChange(_ collections: [String]) {
+    @objc
+    private func recipeCollectionsDidChange(_ notification: Notification) {
+        guard
+            let userInfo = notification.userInfo,
+            let collections = userInfo[NotificationKeys.recipeCollections] as? [String]
+        else { return }
+        
         let items = collections.map { SidebarItem(title: $0, type: .collection) }
         let snapshot = createSidebarItemSnapshot(.recipeCollectionItems, items: items)
         sidebarDataSource.apply(snapshot, to: .recipeCollectionItems, animatingDifferences: true)
@@ -130,7 +136,7 @@ extension SidebarViewController {
     }
     
     private func createSnapshotOfRecipeCollections() -> NSDiffableDataSourceSectionSnapshot<SidebarItem> {
-        let items = dataStore.collections.map { SidebarItem(title: $0, type: .collection) }
+        let items = recipeSplitViewController.recipeCollections.map { SidebarItem(title: $0, type: .collection) }
         return createSidebarItemSnapshot(.recipeCollectionItems, items: items)
     }
     

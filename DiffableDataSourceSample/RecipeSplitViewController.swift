@@ -6,7 +6,6 @@ A view controller that displays a three-column split view.
 */
 
 import UIKit
-import Combine
 
 struct SelectedRecipes {
     
@@ -34,6 +33,7 @@ struct SelectedRecipes {
             return dataStore.recipesInCollection(collectionName)
         }
     }
+    
     func recipeIds() -> [Recipe.ID] {
         return recipes().map { $0.id }
     }
@@ -64,6 +64,45 @@ class RecipeSplitViewController: UISplitViewController {
         }
     }
     
+    var recipeCollections: [String] {
+        dataStore.collections
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        let notificationCenter = NotificationCenter.default
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(recipeDidAddChangeDelete(_:)),
+            name: .recipeDidAdd,
+            object: dataStore)
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(recipeDidAddChangeDelete(_:)),
+            name: .recipeDidChange,
+            object: dataStore)
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(recipeDidAddChangeDelete(_:)),
+            name: .recipeDidDelete,
+            object: dataStore)
+    }
+    
+    @objc
+    private func recipeDidAddChangeDelete(_ notification: Notification) {
+        // Let the sidebar and primary view controllers know that the list
+        // of selected recipes changed as a result of adding, deleting, or
+        // changing a recipe.
+        
+        if let selectedRecipes = self.selectedRecipes {
+            // Include the selected recipe identifiers in the notification.
+            NotificationCenter.default.post(
+                name: .selectedRecipesDidChange,
+                object: self,
+                userInfo: [NotificationKeys.selectedRecipeIds: selectedRecipes.recipeIds()])
+        }
+    }
 }
 
 extension RecipeSplitViewController {

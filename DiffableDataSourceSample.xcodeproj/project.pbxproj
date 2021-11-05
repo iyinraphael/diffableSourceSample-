@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		681B72D526D6864700344BDE /* NotificationName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681B72D426D6864700344BDE /* NotificationName.swift */; };
-		681B72D726D6D1F700344BDE /* Alert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681B72D626D6D1F700344BDE /* Alert.swift */; };
 		682C3C3126D54F7F0073DAA6 /* RecipeListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 682C3C3026D54F7F0073DAA6 /* RecipeListViewController.swift */; };
 		682C3C3326D5813E0073DAA6 /* RecipeSplitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 682C3C3226D5813E0073DAA6 /* RecipeSplitViewController.swift */; };
 		682C3C3526D58C6C0073DAA6 /* RecipeDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 682C3C3426D58C6C0073DAA6 /* RecipeDetailViewController.swift */; };
@@ -50,7 +49,7 @@
 /* Begin PBXFileReference section */
 		5C266ACC3EDBFC7DB0B540CE /* SampleCode.xcconfig */ = {isa = PBXFileReference; name = SampleCode.xcconfig; path = Configuration/SampleCode.xcconfig; sourceTree = "<group>"; };
 		681B72D426D6864700344BDE /* NotificationName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationName.swift; sourceTree = "<group>"; };
-		681B72D626D6D1F700344BDE /* Alert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Alert.swift; sourceTree = "<group>"; };
+		682C2FD02720CFBE0063527C /* DiffableDataSourceSample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DiffableDataSourceSample.entitlements; sourceTree = "<group>"; };
 		682C3C3026D54F7F0073DAA6 /* RecipeListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeListViewController.swift; sourceTree = "<group>"; };
 		682C3C3226D5813E0073DAA6 /* RecipeSplitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeSplitViewController.swift; sourceTree = "<group>"; };
 		682C3C3426D58C6C0073DAA6 /* RecipeDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailViewController.swift; sourceTree = "<group>"; };
@@ -143,6 +142,7 @@
 		68CF12E426D4228A00601036 /* DiffableDataSourceSample */ = {
 			isa = PBXGroup;
 			children = (
+				682C2FD02720CFBE0063527C /* DiffableDataSourceSample.entitlements */,
 				68CF12E526D4228A00601036 /* AppDelegate.swift */,
 				68CF12E726D4228A00601036 /* SceneDelegate.swift */,
 				682C3C3226D5813E0073DAA6 /* RecipeSplitViewController.swift */,
@@ -150,7 +150,6 @@
 				682C3C3026D54F7F0073DAA6 /* RecipeListViewController.swift */,
 				682C3C3426D58C6C0073DAA6 /* RecipeDetailViewController.swift */,
 				681B72D426D6864700344BDE /* NotificationName.swift */,
-				681B72D626D6D1F700344BDE /* Alert.swift */,
 				68CF12EB26D4228A00601036 /* Main.storyboard */,
 				68CF12EE26D4228B00601036 /* Assets.xcassets */,
 				68CF12F026D4228B00601036 /* LaunchScreen.storyboard */,
@@ -307,7 +306,6 @@
 				682C3C3126D54F7F0073DAA6 /* RecipeListViewController.swift in Sources */,
 				68CF130026D429A800601036 /* Recipe.swift in Sources */,
 				68CF12E826D4228A00601036 /* SceneDelegate.swift in Sources */,
-				681B72D726D6D1F700344BDE /* Alert.swift in Sources */,
 				68CF12FB26D428C300601036 /* SidebarViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -458,6 +456,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = DiffableDataSourceSample/DiffableDataSourceSample.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -476,7 +475,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.example.apple-samplecode.DiffableDataSourceSample${SAMPLE_CODE_DISAMBIGUATOR}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 2;
@@ -489,6 +488,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = DiffableDataSourceSample/DiffableDataSourceSample.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -507,7 +507,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.example.apple-samplecode.DiffableDataSourceSample${SAMPLE_CODE_DISAMBIGUATOR}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 2;

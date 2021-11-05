@@ -8,6 +8,10 @@ The backing data store that provides recipe data to the app.
 import UIKit
 import ImageIO
 
+// A reference to the app's backing data store. This data store
+// retrieves recipe data from the file system. In a real-world
+// app, a data store might contain data from other sources such as
+// Core Data or web services.
 let dataStore = DataStore(recipes: load("recipeData.json"))
 
 func load<T: Decodable>(_ filename: String) -> T {
@@ -70,10 +74,9 @@ final class ImageStore {
     }
 }
 
-/// - Tag: DataStore
-class DataStore: ObservableObject {
-    @Published var allRecipes: [Recipe]
-    @Published var collections: [String]
+class DataStore {
+    var allRecipes: [Recipe]
+    var collections: [String]
     
     init(recipes: [Recipe]) {
         self.allRecipes = recipes
@@ -141,6 +144,12 @@ class DataStore: ObservableObject {
         recipeToAdd.id = (allRecipes.map { $0.id }.max() ?? 0) + 1
         allRecipes.append(recipeToAdd)
         updateCollectionsIfNeeded()
+
+        NotificationCenter.default.post(
+            name: .recipeDidAdd,
+            object: self,
+            userInfo: [NotificationKeys.recipeId: recipe.id, NotificationKeys.recipe: recipe])
+
         return recipeToAdd
     }
     
@@ -151,11 +160,15 @@ class DataStore: ObservableObject {
             allRecipes.remove(at: index)
             deleted = true
             updateCollectionsIfNeeded()
+
+            NotificationCenter.default.post(
+                name: .recipeDidDelete,
+                object: self,
+                userInfo: [NotificationKeys.recipeId: recipe.id, NotificationKeys.recipe: recipe])
         }
         return deleted
     }
     
-    /// - Tag: dataStoreUpdate
     @discardableResult
     func update(_ recipe: Recipe) -> Recipe? {
         var recipeToReturn: Recipe? = nil // Return nil if the recipe doesn't exist.
@@ -163,7 +176,11 @@ class DataStore: ObservableObject {
             allRecipes[index] = recipe
             recipeToReturn = recipe
             updateCollectionsIfNeeded()
-            NotificationCenter.default.post(name: .recipeDidChange, object: self, userInfo: [NotificationKeys.recipeId: recipe.id])
+
+            NotificationCenter.default.post(
+                name: .recipeDidChange,
+                object: self,
+                userInfo: [NotificationKeys.recipeId: recipe.id, NotificationKeys.recipe: recipe])
         }
         return recipeToReturn
     }
@@ -176,6 +193,10 @@ class DataStore: ObservableObject {
         let updatedCollection = DataStore.collection(from: allRecipes)
         if collections != updatedCollection {
             collections = updatedCollection
+            NotificationCenter.default.post(
+                name: .recipeCollectionsDidChange,
+                object: self,
+                userInfo: [NotificationKeys.recipeCollections: collections])
         }
     }
     
