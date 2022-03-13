@@ -106,7 +106,7 @@ class RecipeListViewController: UICollectionViewController {
         else { return }
         
         // Update the collection view by adding the recipe identifiers to
-        // a new snapshot, and apply the snapshop to the diffable data source.
+        // a new snapshot, and apply the snapshot to the diffable data source.
         var snapshot = NSDiffableDataSourceSnapshot<RecipeListSection, Recipe.ID>()
         snapshot.appendSections([.main])
         snapshot.appendItems(recipeIds, toSection: .main)
